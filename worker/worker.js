@@ -41,8 +41,10 @@ async function tgApi(token, method, body) {
 }
 
 async function ghGet(env, path) {
+  const repo = env.REPO || "ylong2026/mithkaX-rules";
+  const branch = env.BRANCH || "main";
   const r = await fetch(
-    `https://api.github.com/repos/${env.REPO}/contents/${path}?ref=${env.BRANCH}`,
+    `https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`,
     {
       headers: {
         Authorization: `Bearer ${env.GITHUB_PAT}`,
@@ -56,10 +58,12 @@ async function ghGet(env, path) {
 }
 
 async function ghPut(env, path, content, sha, message) {
-  const body = { message, content: b64encode(content), branch: env.BRANCH };
+  const repo = env.REPO || "ylong2026/mithkaX-rules";
+  const branch = env.BRANCH || "main";
+  const body = { message, content: b64encode(content), branch };
   if (sha) body.sha = sha;
   const r = await fetch(
-    `https://api.github.com/repos/${env.REPO}/contents/${path}`,
+    `https://api.github.com/repos/${repo}/contents/${path}`,
     {
       method: "PUT",
       headers: {
