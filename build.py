@@ -118,6 +118,10 @@ def main() -> int:
             rule = parse_line(line)
             if rule:
                 rule["source"] = f"cat:{cat['id']}"
+                # 关键：把 category id 写进每条规则，App 端才能按类开关。
+                # 注意与 parse_object 的 provenance 透传互补——
+                # categories.json 走这里（逐行 parse_line），inbox 规则走 parse_object。
+                rule["category"] = cat["id"]
                 add(rule, f"cat:{cat['id']}", out, seen)
 
     for line in cats.get("allow", []):

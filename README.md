@@ -117,3 +117,64 @@ Nagram 扩类时重复 1–4 即可，增量合并、不去重冲突。
 python3 build.py                       # 重新生成 rules.json
 python3 -c "import json,sys; json.load(open('rules.json')); print('rules.json OK')"
 ```
+
+## 系统总览：三个部分各管各的
+
+本项目不是单仓，是一条**闭环**分成三处：
+
+| 部分 | 仓库 / 文件 | 谁负责 | 接手要看的文档 |
+|---|---|---|---|
+| **App（消费端）** | `ylong2026/mithkaX`（fork 自 `iebb/mithka`） | 拉 `rules.json`、本地过滤、按类开关 | `ADFILTER.md`（仓内） |
+| **规则真相源 + 生成器** | 本仓 `categories.json` + `build.py` | 人类编辑类目、生成扁平 `rules.json` | 本文件 + `bot/DEFENSE.md` |
+| **机器人（生产端）** | 本仓 `bot/` | 公众转发 → 队列 → Owner 后端分类去重 → 入库 | `bot/README.md` + `bot/DEFENSE.md` |
+
+**密钥只在 `bot/config.py`**（BOT_TOKEN / OWNER_ID / 可选 AI Key），App 端零密钥。
+三者通过唯一的契约连接：**`rules.json` 的 raw URL**。改任何一端都不必改另一端，
+只要 `rules.json` 格式不变（见下「规则格式契约」）。
+
+## 别人怎么接手 / 维护（清单）
+
+1. **先看文档**：本 README → `bot/README.md` → `bot/DEFENSE.md` → App 仓 `ADFILTER.md`。
+2. **跑通机器人**（你自己的机器）：
+   ```bash
+   cd mithkaX-rules
+   cp bot/config.example.py bot/config.py     # 填 BOT_TOKEN / OWNER_ID
+   python3 -m venv .venv && . .venv/bin/activate && pip install -r bot/requirements.txt
+   python3 bot/bot.py                         # 常驻（nohup / systemd / tmux）
+   # 定时处理（用你的 AI Key）：0 */4 * * * cd …/mithkaX-rules && python3 bot/process_pending.py
+   # 复核入库：python3 bot/apply_candidates.py --apply
+   ```
+3. **加规则**：只改 `categories.json`（或经机器人流程），`python3 build.py` → commit → push。
+   **禁止手改 `rules.json`**（它是生成产物）。
+4. **加新类**：`categories.json` 的 `categories` 加对象即可，`build.py` 自动带 `category` 字段进 `rules.json`；
+   App 端 `ad_filter_view.dart` 的 `kAdFilterCategoryLabels` 补一行中文标签（不补也能跑，显示原始 id）。
+5. **校验**：`python3 build.py` 成功 + `rules.json` 能 `json.load`。
+
+## 规则格式契约（App 与规则仓的唯一接口）
+
+`rules.json` 顶层：
+
+```json
+{ "format": "mithkaX-adfilter/1", "version": 123, "updatedAt": "...", "ruleCount": 26,
+  "rules": [ { "kind": "regex", "pattern": "机场.*?VPN", "allow": false,
+               "source": "cat:airport", "category": "airport",
+               "evidence": "...", "reporters": 3, "firstSeen": "2026-09-01" } ] }
+```
+
+- App 只认 `kind` / `pattern` / `allow` / `category` / `caseSensitive`；其余字段（evidence/reporters/firstSeen/source）是**公开审计证据**，App 忽略不展示具体用户。
+- `kind` ∈ `keyword | regex | domain | sender`；`category` 为可选项（无则归「未分类」）。
+
+## 与 App 仓（mithkaX fork）的关系 & 同步冲突
+
+App 是 **fork**，上游 `iebb/mithka` 发版时你会「一键同步」。我们的广告过滤改动已经
+**最小化冲突设计**：核心逻辑全在 App 仓新增的 `lib/ad_filter/`（上游永不碰），冲突只可能
+出现在 6 个调用点 + i18n 生成产物。完整同步流程与冲突分级见 App 仓 **`ADFILTER.md` §6**。
+
+本规则仓是**独立仓库、不是 fork**，所以不存在「同步上游」问题；你只管维护 `categories.json`
+和 `bot/`，`rules.json` 格式契约稳定即可。
+
+## 防投毒 / 防滥用（一句话）
+
+公众转发 → 只进 `pending/`（或低信任 `unverified/`）→ **绝不触发 AI、绝不直写规则** →
+Owner 后端定时跑、复核后才入库。详细威胁模型与限流策略见 `bot/DEFENSE.md`。
+
