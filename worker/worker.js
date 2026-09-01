@@ -28,6 +28,11 @@ const LANGS = {
     skipped: "已跳过，后台自动归类",
     langPrompt: "请选择语言：",
     langSet: "已切换为中文",
+    start: "👋 欢迎使用 mithkaX 广告过滤机器人！\n\n转发一条广告消息给我，我会自动提取特征并加入社区规则库。\n\n命令：\n/help — 使用说明\n/lang — 切换语言",
+    help: "📖 使用说明\n\n1. 在 Telegram 里看到广告/诈骗消息\n2. 转发给我（@FuckTelegramAD_bot）\n3. 可选：点按钮选择类别（不点也行，后台自动归类）\n4. 规则每 4 小时自动处理进规则库，App 端自动拉取\n\n命令：\n/lang — 切换语言\n/help — 查看此说明",
+    categoryChosen: (label) => `✅ 已标记为 ${label}`,
+    skippedChosen: "⏭️ 已跳过，后台自动归类",
+    langChosen: "✅ 语言已切换为中文",
     categories: {
       airport: "✈️ 机场/VPN",
       gambling: "🎰 赌博",
@@ -47,6 +52,11 @@ const LANGS = {
     skipped: "Skipped, will auto-classify",
     langPrompt: "Choose language:",
     langSet: "Switched to English",
+    start: "👋 Welcome to mithkaX ad-filter bot!\n\nForward an ad message to me and I'll extract patterns into the community rule set.\n\nCommands:\n/help — How to use\n/lang — Switch language",
+    help: "📖 How to use\n\n1. See an ad/scam message in Telegram\n2. Forward it to me (@FuckTelegramAD_bot)\n3. Optional: tap a category button (skip = auto-classify)\n4. Rules are processed every 4h, the app pulls automatically\n\nCommands:\n/lang — Switch language\n/help — Show this help",
+    categoryChosen: (label) => `✅ Marked as ${label}`,
+    skippedChosen: "⏭️ Skipped, will auto-classify",
+    langChosen: "✅ Language switched to English",
     categories: {
       airport: "✈️ VPN/Proxy",
       gambling: "🎰 Gambling",
@@ -162,21 +172,30 @@ async function sha256Hex(text) {
 }
 
 async function handleMessage(env, msg) {
-  const text = msg.text || msg.caption || "";
+  const text = (msg.text || msg.caption || "").trim();
   const fromId = msg.from ? msg.from.id : null;
+  const lower = text.toLowerCase();
 
-  // /lang 命令：弹出语言选择按钮
-  if (text && text.trim().toLowerCase().startsWith("/lang")) {
-    if (fromId) {
+  // ---- 命令处理（/start /help /lang）----
+  if (lower.startsWith("/start") || lower.startsWith("/help") || lower.startsWith("/lang")) {
+    if (!fromId) return;
+    const lang = await resolveLang(env, msg.from);
+    const t = LANGS[lang];
+
+    if (lower.startsWith("/lang")) {
       const kb = [
         [{ text: "🇨🇳 中文", callback_data: "lang:zh" }],
         [{ text: "🇬🇧 English", callback_data: "lang:en" }],
       ];
       await tgApi(env.BOT_TOKEN, "sendMessage", {
         chat_id: fromId,
-        text: "请选择语言 / Choose language:",
+        text: t.langPrompt,
         reply_markup: { inline_keyboard: kb },
       });
+    } else if (lower.startsWith("/start")) {
+      await tgApi(env.BOT_TOKEN, "sendMessage", { chat_id: fromId, text: t.start });
+    } else {
+      await tgApi(env.BOT_TOKEN, "sendMessage", { chat_id: fromId, text: t.help });
     }
     return;
   }
@@ -227,6 +246,9 @@ async function handleMessage(env, msg) {
 }
 
 async function handleCallback(env, cb) {
+  const chatId = cb.message && cb.message.chat ? cb.message.chat.id : null;
+  const msgId = cb.message ? cb.message.message_id : null;
+
   // 语言切换回调：lang:zh / lang:en
   const lm = (cb.data || "").match(/^lang:(zh|en)$/);
   if (lm) {
@@ -234,10 +256,19 @@ async function handleCallback(env, cb) {
     if (cb.from && cb.from.id) {
       await setUserLang(env, cb.from.id, lang);
     }
+    const t = LANGS[lang];
     await tgApi(env.BOT_TOKEN, "answerCallbackQuery", {
       callback_query_id: cb.id,
-      text: LANGS[lang].langSet,
+      text: t.langSet,
     });
+    // 收缩语言选择菜单，显示确认
+    if (chatId && msgId) {
+      await tgApi(env.BOT_TOKEN, "editMessageText", {
+        chat_id: chatId,
+        message_id: msgId,
+        text: t.langChosen,
+      });
+    }
     return;
   }
 
@@ -256,10 +287,19 @@ async function handleCallback(env, cb) {
   }
   const lang = await resolveLang(env, cb.from);
   const t = LANGS[lang];
+  const label = cat === "__skip__" ? null : (t.categories[cat] || cat);
   await tgApi(env.BOT_TOKEN, "answerCallbackQuery", {
     callback_query_id: cb.id,
-    text: cat === "__skip__" ? t.skipped : t.marked(cat),
+    text: cat === "__skip__" ? t.skipped : t.marked(label),
   });
+  // 收缩类别选择菜单，显示确认（按钮消失）
+  if (chatId && msgId) {
+    await tgApi(env.BOT_TOKEN, "editMessageText", {
+      chat_id: chatId,
+      message_id: msgId,
+      text: cat === "__skip__" ? t.skippedChosen : t.categoryChosen(label),
+    });
+  }
 }
 
 export default {
