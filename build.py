@@ -68,10 +68,15 @@ def parse_object(obj: dict) -> dict | None:
         return None
     if kind == "regex":
         pat = normalize_regex(pat)
-    return {"kind": kind, "pattern": pat,
-            "caseSensitive": bool(obj.get("caseSensitive")),
-            "allow": bool(obj.get("allow")),
-            "source": obj.get("source")}
+    out = {"kind": kind, "pattern": pat,
+           "caseSensitive": bool(obj.get("caseSensitive")),
+           "allow": bool(obj.get("allow")),
+           "source": obj.get("source")}
+    # 透传证据化 provenance（公众提交入库时附，公开规则只存计数不存用户 ID）
+    for k in ("category", "evidence", "reporters", "firstSeen"):
+        if k in obj and obj[k] not in (None, ""):
+            out[k] = obj[k]
+    return out
 
 
 def collect_from_payload(payload, source: str, out: list, seen: set):
@@ -131,6 +136,19 @@ def main() -> int:
             continue
         data = json.loads(path.read_text(encoding="utf-8"))
         collect_from_payload(data, ext.get("id", "external"), out, seen)
+
+    # 自动入库区：公众提交经后端处理 + Owner 复核后落入这里
+    inbox = ROOT / "inbox_rules.json"
+    if inbox.exists():
+        try:
+            idata = json.loads(inbox.read_text(encoding="utf-8"))
+            for entry in idata.get("rules", []):
+                rule = parse_object(entry) if isinstance(entry, dict) else None
+                if rule:
+                    rule.setdefault("source", "inbox")
+                    add(rule, "inbox", out, seen)
+        except Exception as e:  # noqa: BLE001
+            print(f"skip inbox_rules.json: {e}", file=sys.stderr)
 
     version = int(datetime.now(timezone.utc).timestamp())
     result = {

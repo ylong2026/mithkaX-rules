@@ -1,0 +1,11 @@
+# 本地运行态，不入库（避免泄露消息明文 / 个人凭证）
+config.py
+bot/state.json
+pending/
+candidates/
+poison/
+unverified/
+appeals/
+category_proposals/
+__pycache__/
+*.session
