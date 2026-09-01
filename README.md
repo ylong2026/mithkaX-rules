@@ -24,17 +24,59 @@ App 侧：设置 → 拦截 → 广告过滤规则库 URL，填上面这行；�
 | `schemas/rules.schema.json` | `rules.json` 的 JSON Schema |
 | `bot/DEFENSE.md` | 机器人端防滥用 / AI 限流 / 贡献审核设计 |
 
-## 闭环（你在 Telegram 里转发广告 → 自动屏蔽）
+## 闭环（你在 Telegram 里转发广告 → 自动屏蔽，零服务器）
 
 ```
-你转发疑似广告 ──▶ 机器人(鉴权→分类→生成安全正则→去重→批量commit)
-                        │
-                        ▼
-              mithkaX-rules/rules.json  (本仓库, 公开 raw URL)
-                        │
-                        ▼  (30min 定时 / 手动拉取)
-              App 本地缓存 ──▶ 聊天 / 通知 / 会话列表 三处过滤
+你转发疑似广告
+   │  (Telegram 把消息推给 webhook)
+   ▼
+Cloudflare Worker（免费·serverless）            ← 收转发，写入本仓库 pending/
+   │
+   ▼  (GitHub Actions 每 4h 定时 / 手动触发，免费)
+process_pending.py → apply_candidates.py --apply → build.py
+   │  (分类→去重→生成安全正则→自动候选→重建 rules.json→git 推送)
+   ▼
+mithkaX-rules/rules.json  (本仓库, 公开 raw URL)
+   │
+   ▼  (App 30min 定时 / 手动拉取)
+App 本地缓存 ──▶ 聊天 / 通知 / 会话列表 三处过滤
 ```
+
+**隐私保证**：公众转发的原文只作为「正则 + 举报人数」进入公开 `rules.json`，
+转发人 ID、消息原文**绝不进公开仓库**（`pending/` 处理后即删）。
+
+## 生产部署（零本地 / 零自有服务器）
+
+### 1) Cloudflare Worker（接收 Telegram 转发，写入 pending/）
+```bash
+cd worker
+# 安装 wrangler（一次）：npm i -g wrangler
+wrangler login
+wrangler secret put BOT_TOKEN          # 贴 BotFather 给的 token
+wrangler secret put GITHUB_PAT         # 有 repo 权限的 GitHub PAT（仅写 pending/）
+wrangler secret put WEBHOOK_SECRET     # 任意长随机串，用作 Telegram secret_token
+wrangler deploy
+# 记下输出的 Worker URL，例如 https://mithkax-rules-bot.xxx.workers.dev
+```
+设置 Telegram webhook（把 Bot 的收消息地址指到 Worker）：
+```bash
+curl -F "url=https://mithkax-rules-bot.xxx.workers.dev" \
+     -F "secret_token=上面的WEBHOOK_SECRET" \
+     https://api.telegram.org/bot<你的BOT_TOKEN>/setWebhook
+```
+
+### 2) GitHub Actions（自动处理 + 推送，已配好）
+无需额外操作：`.github/workflows/process.yml` 已就绪，每 4 小时自动跑，
+也可在仓库 Actions 页面手动 `Run workflow`。需要权限：`Settings → Actions →
+Workflow permissions → Read and write`。
+
+### 3) App 端
+设置 → 广告过滤 → 规则库 URL 填 `https://raw.githubusercontent.com/ylong2026/mithkaX-rules/main/rules.json`
+（App 已内置此默认值，装好即用），开启自动同步即可。
+
+> 本地调试 bot 仍可用 `python3 bot/bot.py`（需 `cp config.example.py config.py` 填好），
+> 但生产环境走上面 1)+2) 的 serverless 方案，不依赖任何常开机器。
+
 
 ## 规则大类（category）
 

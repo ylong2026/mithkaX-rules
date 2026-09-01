@@ -1,0 +1,38 @@
+name: Process spam reports
+
+# 零服务器 / 零本地：GitHub 自带 runner 定时把 pending/ 处理成 rules.json 并推送。
+# Cloudflare Worker 负责把 Telegram 转发写进 pending/（见 worker/）。
+on:
+  schedule:
+    - cron: "23 */4 * * *"   # 每 4 小时一次
+  workflow_dispatch:        # 也可在 Actions 页面手动点 Run
+
+permissions:
+  contents: write
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Configure git (identity + token auth)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
+      - name: Process pending -> candidates
+        run: python3 bot/process_pending.py
+
+      - name: Remove raw pending (避免原文进入公开仓库)
+        run: find pending -name '*.json' -delete 2>/dev/null || true
+
+      - name: Apply candidates -> rules.json -> push
+        run: python3 bot/apply_candidates.py --apply

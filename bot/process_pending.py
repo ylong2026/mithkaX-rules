@@ -19,8 +19,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import common
-import ai_review
-from config import AUTO_CANDIDATE_MIN_REPORTERS
+try:
+    import ai_review
+except ImportError:
+    ai_review = None
+try:
+    from config import AUTO_CANDIDATE_MIN_REPORTERS
+except ImportError:
+    from config_defaults import AUTO_CANDIDATE_MIN_REPORTERS
 
 STOP = set("的 了 是 我 你 他 她 在 有 和 就 不 也 都 把 被 给 这 那 啊 吗 呢 吧 哦 嗯 请 加 微信 群 个 们 会 能 要 去 到 用 上 下 中 里 后 前 对 从 向 以 为 与 及 或 等".split())
 
@@ -121,7 +127,7 @@ def run(use_ai=True):
         pat = make_rule(norm, theme)
         method = "dict"
         proposed_this = False
-        if not pat and use_ai:
+        if not pat and use_ai and ai_review:
             ai = ai_review.review(text, theme)
             if ai and ai.get("regex"):
                 pat = ai["regex"] if ai["regex"].startswith("re:") else "re:" + ai["regex"]

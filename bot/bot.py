@@ -20,12 +20,20 @@ import urllib.error
 from datetime import datetime, timezone
 from pathlib import Path
 
-from config import (
-    BOT_TOKEN, OWNER_ID, ALLOWED_USERS,
-    MAX_PER_USER_PER_MIN, MAX_PER_USER_PER_DAY, MAX_GLOBAL_PER_DAY,
-    NEW_USER_WINDOW_H, MIN_TEXT_LEN, MAX_TEXT_LEN, ABUSE_BAN_THRESHOLD,
-    AUTO_CANDIDATE_MIN_REPORTERS, CATEGORY_PICKER,
-)
+try:
+    from config import (
+        BOT_TOKEN, OWNER_ID, ALLOWED_USERS,
+        MAX_PER_USER_PER_MIN, MAX_PER_USER_PER_DAY, MAX_GLOBAL_PER_DAY,
+        NEW_USER_WINDOW_H, MIN_TEXT_LEN, MAX_TEXT_LEN, ABUSE_BAN_THRESHOLD,
+        AUTO_CANDIDATE_MIN_REPORTERS, CATEGORY_PICKER,
+    )
+except ImportError:
+    from config_defaults import (
+        BOT_TOKEN, OWNER_ID, ALLOWED_USERS,
+        MAX_PER_USER_PER_MIN, MAX_PER_USER_PER_DAY, MAX_GLOBAL_PER_DAY,
+        NEW_USER_WINDOW_H, MIN_TEXT_LEN, MAX_TEXT_LEN, ABUSE_BAN_THRESHOLD,
+        AUTO_CANDIDATE_MIN_REPORTERS, CATEGORY_PICKER,
+    )
 import common
 import build  # 仅 Owner 命令 /addcat /resolve 用，用于重建 rules.json
 

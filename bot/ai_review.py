@@ -7,7 +7,10 @@
 import json
 import re
 import urllib.request
-from config import AI_ENABLED, AI_BASE_URL, AI_API_KEY, AI_MODEL
+try:
+    from config import AI_ENABLED, AI_BASE_URL, AI_API_KEY, AI_MODEL
+except ImportError:
+    from config_defaults import AI_ENABLED, AI_BASE_URL, AI_API_KEY, AI_MODEL
 import common
 
 SYSTEM = (

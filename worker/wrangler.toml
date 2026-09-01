@@ -1,0 +1,8 @@
+name = "mithkaX-rules-bot"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+
+# 非秘密的配置放这里；秘密(BOT_TOKEN/GITHUB_PAT/WEBHOOK_SECRET)用 `wrangler secret put` 设置
+[vars]
+REPO = "ylong2026/mithkaX-rules"
+BRANCH = "main"
