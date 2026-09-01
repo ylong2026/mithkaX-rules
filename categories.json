@@ -1,0 +1,91 @@
+{
+  "format": "mithkaX-adfilter-categories/1",
+  "note": "Source of truth for the rule set. build.py merges this + external/*.json into the flat rules.json the App subscribes to. Add a rule by appending to the right category; do not edit rules.json by hand.",
+  "categories": [
+    {
+      "id": "airport",
+      "label": "机场 / VPN / 代理 / 翻墙",
+      "rules": [
+        "re:机场.*?(?:节点|专线|VPN|翻墙|解锁|稳定)",
+        "re:(?:VPN|SSR|V2Ray|trojan|clash).*?(?:节点|订阅|免费|稳定)",
+        "re:(?:奈飞|Netflix|Disney|HBO).*?(?:解锁|合租|车)"
+      ]
+    },
+    {
+      "id": "gambling",
+      "label": "赌博 / 博彩 / 棋牌",
+      "rules": [
+        "re:(?:棋牌|博彩|赌博|开元|新葡京|百家乐).*?(?:首充|充值|上分|提现)",
+        "re:(?:赌球|外围|私彩|彩票).*?(?:下注|盘口|投注)",
+        "re:(?:博彩|娱乐城).*?(?:客服|代理|加盟)"
+      ]
+    },
+    {
+      "id": "adult",
+      "label": "黄色 / 卖片 / 约炮",
+      "rules": [
+        "re:(?:约炮|裸聊|成人|色情|卖片).*?(?:加|微信|telegram|tg)",
+        "re:(?:原味|丝袜|资源).*?(?:有偿|出售|同城)",
+        "re:(?:色情|成人|福利).*?群"
+      ]
+    },
+    {
+      "id": "phishing_scam",
+      "label": "诈骗 / 杀猪盘 / 刷单",
+      "rules": [
+        "re:(?:刷单|返利|兼职|日结).*?(?:躺赚|轻松|佣金)",
+        "re:(?:杀猪盘|民族资产|解冻).*?(?:微信|转账|安全)",
+        "re:(?:博彩|彩票).*?客服"
+      ]
+    },
+    {
+      "id": "selling",
+      "label": "卖货 / 微商 / 招代理 / 免费领",
+      "rules": [
+        "re:(?:招代理|一件代发|免费领|扫码领).*?(?:微信|加我|二维码)",
+        "re:(?:微商|代购|海外直邮).*?(?:招代理|加盟|一件代发)",
+        "re:(?:免费|0元).*?领取"
+      ]
+    },
+    {
+      "id": "finance_illegal",
+      "label": "非法贷款 / 黑户洗白 / 套现",
+      "rules": [
+        "re:(?:黑户|征信修复|洗白|套现).*?(?:贷款|信用卡|额度)",
+        "re:(?:无抵押|秒到|无视黑户).*?借款",
+        "re:(?:信用卡|花呗).*?(?:套现|提现)"
+      ]
+    },
+    {
+      "id": "proxy_service",
+      "label": "代办 / 代充 / 解封 / 代考",
+      "rules": [
+        "re:(?:代办|代充|代解封|代考|代注册).*?(?:微信|扫码|联系|QQ)",
+        "re:(?:解封|解冻|解限).*?(?:微信|账号|QQ)",
+        "re:(?:代写|代做|代运营).*?(?:加|联系)"
+      ]
+    },
+    {
+      "id": "spam_link",
+      "label": "推广链接 / 拉群 / 机器人群发",
+      "rules": [
+        "re:t\\.me/.{3,}.*?(?:群|邀请|加入|推广|福利)",
+        "re:(?:加群|扫码进|邀请码|内部群).*?(?:福利|红包|内部)",
+        "re:(?:推广|拉人|佣金).*?(?:群|二维码)"
+      ]
+    }
+  ],
+  "allow": [
+    "domain:github.com",
+    "domain:t.me/mithkaX"
+  ],
+  "external": [
+    {
+      "id": "nagram",
+      "label": "Nagram 社区规则",
+      "source": "https://ddgksf2013.top/nagram/",
+      "file": "external/nagram.json",
+      "enabled": true
+    }
+  ]
+}

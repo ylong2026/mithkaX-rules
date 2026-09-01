@@ -1,0 +1,164 @@
+{
+  "format": "mithkaX-adfilter/1",
+  "version": 1788237526,
+  "updatedAt": "2026-09-01T04:38:46Z",
+  "ruleCount": 26,
+  "rules": [
+    {
+      "kind": "regex",
+      "pattern": "机场.*?(?:节点|专线|VPN|翻墙|解锁|稳定)",
+      "allow": false,
+      "source": "cat:airport"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:VPN|SSR|V2Ray|trojan|clash).*?(?:节点|订阅|免费|稳定)",
+      "allow": false,
+      "source": "cat:airport"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:奈飞|Netflix|Disney|HBO).*?(?:解锁|合租|车)",
+      "allow": false,
+      "source": "cat:airport"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:棋牌|博彩|赌博|开元|新葡京|百家乐).*?(?:首充|充值|上分|提现)",
+      "allow": false,
+      "source": "cat:gambling"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:赌球|外围|私彩|彩票).*?(?:下注|盘口|投注)",
+      "allow": false,
+      "source": "cat:gambling"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:博彩|娱乐城).*?(?:客服|代理|加盟)",
+      "allow": false,
+      "source": "cat:gambling"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:约炮|裸聊|成人|色情|卖片).*?(?:加|微信|telegram|tg)",
+      "allow": false,
+      "source": "cat:adult"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:原味|丝袜|资源).*?(?:有偿|出售|同城)",
+      "allow": false,
+      "source": "cat:adult"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:色情|成人|福利).*?群",
+      "allow": false,
+      "source": "cat:adult"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:刷单|返利|兼职|日结).*?(?:躺赚|轻松|佣金)",
+      "allow": false,
+      "source": "cat:phishing_scam"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:杀猪盘|民族资产|解冻).*?(?:微信|转账|安全)",
+      "allow": false,
+      "source": "cat:phishing_scam"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:博彩|彩票).*?客服",
+      "allow": false,
+      "source": "cat:phishing_scam"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:招代理|一件代发|免费领|扫码领).*?(?:微信|加我|二维码)",
+      "allow": false,
+      "source": "cat:selling"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:微商|代购|海外直邮).*?(?:招代理|加盟|一件代发)",
+      "allow": false,
+      "source": "cat:selling"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:免费|0元).*?领取",
+      "allow": false,
+      "source": "cat:selling"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:黑户|征信修复|洗白|套现).*?(?:贷款|信用卡|额度)",
+      "allow": false,
+      "source": "cat:finance_illegal"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:无抵押|秒到|无视黑户).*?借款",
+      "allow": false,
+      "source": "cat:finance_illegal"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:信用卡|花呗).*?(?:套现|提现)",
+      "allow": false,
+      "source": "cat:finance_illegal"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:代办|代充|代解封|代考|代注册).*?(?:微信|扫码|联系|QQ)",
+      "allow": false,
+      "source": "cat:proxy_service"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:解封|解冻|解限).*?(?:微信|账号|QQ)",
+      "allow": false,
+      "source": "cat:proxy_service"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:代写|代做|代运营).*?(?:加|联系)",
+      "allow": false,
+      "source": "cat:proxy_service"
+    },
+    {
+      "kind": "regex",
+      "pattern": "t\\.me/.{3,}.*?(?:群|邀请|加入|推广|福利)",
+      "allow": false,
+      "source": "cat:spam_link"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:加群|扫码进|邀请码|内部群).*?(?:福利|红包|内部)",
+      "allow": false,
+      "source": "cat:spam_link"
+    },
+    {
+      "kind": "regex",
+      "pattern": "(?:推广|拉人|佣金).*?(?:群|二维码)",
+      "allow": false,
+      "source": "cat:spam_link"
+    },
+    {
+      "kind": "domain",
+      "pattern": "github.com",
+      "allow": true,
+      "source": "allow"
+    },
+    {
+      "kind": "domain",
+      "pattern": "t.me/mithkaX",
+      "allow": true,
+      "source": "allow"
+    }
+  ]
+}

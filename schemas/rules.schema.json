@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "mithkaX ad-filter rules",
+  "type": "object",
+  "required": ["format", "version", "ruleCount", "rules"],
+  "properties": {
+    "format": { "const": "mithkaX-adfilter/1" },
+    "version": { "type": "integer" },
+    "updatedAt": { "type": "string" },
+    "ruleCount": { "type": "integer" },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "pattern"],
+        "properties": {
+          "kind": { "enum": ["keyword", "regex", "domain", "sender"] },
+          "pattern": { "type": "string", "maxLength": 256 },
+          "caseSensitive": { "type": "boolean" },
+          "allow": { "type": "boolean" },
+          "source": { "type": "string" }
+        }
+      }
+    }
+  }
+}
