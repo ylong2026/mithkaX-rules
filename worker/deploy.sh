@@ -18,9 +18,13 @@ WORKER_JS="$REPO_DIR/worker/worker.js"
 WEBHOOK_SECRET=$(python3 -c "import secrets;print(secrets.token_urlsafe(24))")
 
 echo "=== 1) 取 account_id ==="
-ACCOUNT_ID=$(curl -s -H "Authorization: Bearer $CF_API_TOKEN" \
-  https://api.cloudflare.com/client/v4/accounts \
-  | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['result'][0]['id'])")
+if [ -n "$ACCOUNT_ID" ]; then
+  echo "使用提供的 ACCOUNT_ID 覆盖（无需 Account:Read 权限）"
+else
+  ACCOUNT_ID=$(curl -s -H "Authorization: Bearer $CF_API_TOKEN" \
+    https://api.cloudflare.com/client/v4/accounts \
+    | python3 -c "import sys,json;d=json.load(sys.stdin);print(d['result'][0]['id'])")
+fi
 echo "account_id=$ACCOUNT_ID"
 
 echo "=== 2) 上传 Worker 脚本 ==="
@@ -33,11 +37,12 @@ curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/worker
 echo "=== 3) 设置 3 个加密 secret ==="
 for kv in "BOT_TOKEN:$BOT_TOKEN" "GITHUB_PAT:$GITHUB_PAT" "WEBHOOK_SECRET:$WEBHOOK_SECRET"; do
   name="${kv%%:*}"; val="${kv#*:}"
+  echo "  setting $name ..."
   curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/workers/scripts/$SCRIPT_NAME/secrets/$name" \
     -H "Authorization: Bearer $CF_API_TOKEN" \
     -H "Content-Type: application/json" \
     -d "{\"text\":\"$val\"}" \
-    | python3 -c "import sys,json;d=json.load(sys.stdin);print(' ', name, '->', 'OK' if d.get('success') else d)"
+    | python3 -c "import sys,json;d=json.load(sys.stdin);print('   ->', 'OK' if d.get('success') else d)"
 done
 
 echo "=== 4) 取 workers.dev 子域，拼出 Worker URL ==="
