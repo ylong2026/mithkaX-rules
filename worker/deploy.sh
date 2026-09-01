@@ -27,23 +27,33 @@ else
 fi
 echo "account_id=$ACCOUNT_ID"
 
-echo "=== 2) 上传 Worker 脚本 ==="
+echo "=== 2) 上传 Worker 脚本（multipart，ES module 格式）==="
+# worker.js 是 ES module（export default），必须用 multipart 带 metadata 上传，
+# 否则 CF 按 Service Worker 格式解析会报 "Unexpected token 'export'"。
 curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/workers/scripts/$SCRIPT_NAME" \
   -H "Authorization: Bearer $CF_API_TOKEN" \
-  -H "Content-Type: application/javascript" \
-  --data-binary "@$WORKER_JS" \
+  -F 'metadata={"main_module":"worker.js"};type=application/json' \
+  -F "worker.js=@$WORKER_JS;type=application/javascript+module" \
   | python3 -c "import sys,json;d=json.load(sys.stdin);print('upload:', 'OK' if d.get('success') else d)"
 
 echo "=== 3) 设置 3 个加密 secret ==="
+# 注意：CF 的 PUT secret 端点是 .../secrets（不带名字），body 需含 name/type/text
 for kv in "BOT_TOKEN:$BOT_TOKEN" "GITHUB_PAT:$GITHUB_PAT" "WEBHOOK_SECRET:$WEBHOOK_SECRET"; do
   name="${kv%%:*}"; val="${kv#*:}"
   echo "  setting $name ..."
-  curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/workers/scripts/$SCRIPT_NAME/secrets/$name" \
+  curl -s -X PUT "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/workers/scripts/$SCRIPT_NAME/secrets" \
     -H "Authorization: Bearer $CF_API_TOKEN" \
     -H "Content-Type: application/json" \
-    -d "{\"text\":\"$val\"}" \
+    -d "{\"name\":\"$name\",\"text\":\"$val\",\"type\":\"secret_text\"}" \
     | python3 -c "import sys,json;d=json.load(sys.stdin);print('   ->', 'OK' if d.get('success') else d)"
 done
+
+echo "=== 3.5) 启用该脚本的 workers.dev 子域路由（否则访问 404）==="
+curl -s -X POST "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/workers/scripts/$SCRIPT_NAME/subdomain" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled":true}' \
+  | python3 -c "import sys,json;d=json.load(sys.stdin);print('subdomain route:', 'OK' if d.get('success') else d)"
 
 echo "=== 4) 取 workers.dev 子域，拼出 Worker URL ==="
 SUB=$(curl -s -H "Authorization: Bearer $CF_API_TOKEN" \
