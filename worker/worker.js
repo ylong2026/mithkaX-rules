@@ -19,6 +19,79 @@ const CATEGORIES = [
   "scam", "selling", "finance", "proxy", "spam_link",
 ];
 
+// ---- i18n：按钮/提示语按用户语言显示，callback_data 仍用英文类别 ID ----
+const LANGS = {
+  zh: {
+    received: "已收到举报 ✅ 可选类别（不点也行，后台自动归类）：",
+    skip: "跳过(自动归类)",
+    marked: (cat) => `已标记为 ${cat}`,
+    skipped: "已跳过，后台自动归类",
+    langPrompt: "请选择语言：",
+    langSet: "已切换为中文",
+    categories: {
+      airport: "✈️ 机场/VPN",
+      gambling: "🎰 赌博",
+      adult: "🔞 色情",
+      phishing: "🎣 钓鱼",
+      scam: "💸 诈骗",
+      selling: "🛒 卖货/招代理",
+      finance: "💰 非法金融",
+      proxy: "🔧 代办/解封",
+      spam_link: "🔗 推广链接",
+    },
+  },
+  en: {
+    received: "Report received ✅ Pick a category (optional, auto-classify if skipped):",
+    skip: "Skip (auto-classify)",
+    marked: (cat) => `Marked as ${cat}`,
+    skipped: "Skipped, will auto-classify",
+    langPrompt: "Choose language:",
+    langSet: "Switched to English",
+    categories: {
+      airport: "✈️ VPN/Proxy",
+      gambling: "🎰 Gambling",
+      adult: "🔞 Adult",
+      phishing: "🎣 Phishing",
+      scam: "💸 Scam",
+      selling: "🛒 Selling",
+      finance: "💰 Illegal Finance",
+      proxy: "🔧 Unblock Service",
+      spam_link: "🔗 Spam Link",
+    },
+  },
+};
+
+function detectLang(from) {
+  const code = (from && from.language_code) || "";
+  return code.startsWith("zh") ? "zh" : "en";
+}
+
+// 读用户语言偏好（存 GitHub user_prefs/<id>.json），无则返回 null 走自动检测
+async function getUserLang(env, fromId) {
+  if (!fromId) return null;
+  const f = await ghGet(env, `user_prefs/${fromId}.json`);
+  if (f) {
+    try {
+      const d = JSON.parse(b64decode(f.content));
+      if (d.lang && LANGS[d.lang]) return d.lang;
+    } catch (e) { /* ignore corrupt prefs */ }
+  }
+  return null;
+}
+
+async function setUserLang(env, fromId, lang) {
+  const path = `user_prefs/${fromId}.json`;
+  const existing = await ghGet(env, path);
+  const data = { lang, updated_at: new Date().toISOString() };
+  await ghPut(env, path, JSON.stringify(data, null, 2), existing ? existing.sha : null, `prefs: ${fromId} -> ${lang}`);
+}
+
+async function resolveLang(env, from) {
+  const fromId = from ? from.id : null;
+  const pref = await getUserLang(env, fromId);
+  return pref || detectLang(from);
+}
+
 function b64encode(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
@@ -90,8 +163,25 @@ async function sha256Hex(text) {
 
 async function handleMessage(env, msg) {
   const text = msg.text || msg.caption || "";
-  if (text.length < 10) return; // 太短无法提取特征，忽略
   const fromId = msg.from ? msg.from.id : null;
+
+  // /lang 命令：弹出语言选择按钮
+  if (text && text.trim().toLowerCase().startsWith("/lang")) {
+    if (fromId) {
+      const kb = [
+        [{ text: "🇨🇳 中文", callback_data: "lang:zh" }],
+        [{ text: "🇬🇧 English", callback_data: "lang:en" }],
+      ];
+      await tgApi(env.BOT_TOKEN, "sendMessage", {
+        chat_id: fromId,
+        text: "请选择语言 / Choose language:",
+        reply_markup: { inline_keyboard: kb },
+      });
+    }
+    return;
+  }
+
+  if (text.length < 10) return; // 太短无法提取特征，忽略
   const date = new Date().toISOString().slice(0, 10);
   const hash = await sha256Hex(text);
   const path = `pending/${date}/${hash}.json`;
@@ -118,23 +208,39 @@ async function handleMessage(env, msg) {
 
   // 回一个类别选择按钮（仅校正已有类；新类由 Owner 审批）
   if (fromId) {
+    const lang = await resolveLang(env, msg.from);
+    const t = LANGS[lang];
     const kb = chunk(
       CATEGORIES.map((c) => ({
-        text: c,
+        text: t.categories[c] || c,
         callback_data: `cat:${date}:${hash}:${c}`,
       })),
       3
     );
-    kb.push([{ text: "跳过(自动归类)", callback_data: `cat:${date}:${hash}:__skip__` }]);
+    kb.push([{ text: t.skip, callback_data: `cat:${date}:${hash}:__skip__` }]);
     await tgApi(env.BOT_TOKEN, "sendMessage", {
       chat_id: fromId,
-      text: "已收到举报 ✅ 可选类别（不点也行，后台自动归类）：",
+      text: t.received,
       reply_markup: { inline_keyboard: kb },
     });
   }
 }
 
 async function handleCallback(env, cb) {
+  // 语言切换回调：lang:zh / lang:en
+  const lm = (cb.data || "").match(/^lang:(zh|en)$/);
+  if (lm) {
+    const lang = lm[1];
+    if (cb.from && cb.from.id) {
+      await setUserLang(env, cb.from.id, lang);
+    }
+    await tgApi(env.BOT_TOKEN, "answerCallbackQuery", {
+      callback_query_id: cb.id,
+      text: LANGS[lang].langSet,
+    });
+    return;
+  }
+
   const m = (cb.data || "").match(/^cat:(.+?):(.+?):(.+)$/);
   if (!m) return;
   const date = m[1];
@@ -148,9 +254,11 @@ async function handleCallback(env, cb) {
     pd.updated_at = new Date().toISOString();
     await ghPut(env, path, JSON.stringify(pd, null, 2), f.sha, `cat: ${hash} -> ${cat}`);
   }
+  const lang = await resolveLang(env, cb.from);
+  const t = LANGS[lang];
   await tgApi(env.BOT_TOKEN, "answerCallbackQuery", {
     callback_query_id: cb.id,
-    text: cat === "__skip__" ? "已跳过，后台自动归类" : `已标记为 ${cat}`,
+    text: cat === "__skip__" ? t.skipped : t.marked(cat),
   });
 }
 
