@@ -1,0 +1,14 @@
+{
+  "rules": [
+    {
+      "kind": "regex",
+      "pattern": "(?:vpn|名额有限|随时恢复原价)",
+      "allow": false,
+      "category": "airport",
+      "evidence": "🔔66一年质保，q12个人证书📚秒出！\n\n          ☺️名额有限！名额有限☺️\n\n🔄特价中名额有限，过期不侯！\n🎉随时恢复原价！ 🎉随时恢复原价！\n\n☺️支持全系统！证书权限全开！\n☺️证书可以安装所有软件！不会的可包教会！\niO",
+      "reporters": 1,
+      "firstSeen": "2026-09-01T16:44:41Z",
+      "source": "inbox:airport"
+    }
+  ]
+}
